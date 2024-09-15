@@ -71,17 +71,6 @@ const TOP_PAIRS_QUERY = gql`
   }
 `;
 
-// Define the query for protocol statistics
-const PROTOCOL_STATS_QUERY = gql`
-  {
-    uniswapDayDatas(first: 30, orderBy: date, orderDirection: desc) {
-      date
-      tvlUSD
-      volumeUSD
-      feesUSD
-}
-`;
-
 function Swaps() {
   const { loading, error, data } = useQuery(SWAP_QUERY);
 
@@ -285,67 +274,6 @@ function TopPairs() {
   );
 }
 
-function ProtocolStats() {
-  const { loading, error, data } = useQuery(PROTOCOL_STATS_QUERY);
-
-  if (loading) return <CircularProgress />;
-  if (error) {
-    console.error('Error fetching protocol stats:', error);
-    return <Typography color="error">Error: {error.message}</Typography>;
-  }
-
-  const uniswapDayDatas = data.uniswapDayDatas;
-
-  // Prepare data for the chart
-  const chartData = {
-    labels: uniswapDayDatas.map((entry) => new Date(entry.date * 1000).toLocaleDateString()), // Date formatting
-    datasets: [
-      {
-        label: 'TVL USD',
-        data: uniswapDayDatas.map((entry) => entry.tvlUSD),
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        fill: true,
-      },
-      {
-        label: 'Volume USD',
-        data: uniswapDayDatas.map((entry) => entry.volumeUSD),
-        borderColor: 'rgba(153, 102, 255, 1)',
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        fill: true,
-      },
-      {
-        label: 'Fees USD',
-        data: uniswapDayDatas.map((entry) => entry.feesUSD),
-        borderColor: 'rgba(255, 159, 64, 1)',
-        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-        fill: true,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Uniswap Protocol Stats (Last 30 Days)',
-      },
-    },
-  };
-
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6">Protocol Statistics (TVL, Volume, Fees)</Typography>
-        <Line data={chartData} options={chartOptions} />
-      </CardContent>
-    </Card>
-  );
-}
 
 function App() {
   return (
@@ -354,7 +282,6 @@ function App() {
         <Swaps />
         <TokenVolume />
         <TopPairs />
-        <ProtocolStats />
       </Stack>
     </Container>
   );
