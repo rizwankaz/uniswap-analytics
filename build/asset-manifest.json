@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/uniswap-analytics/static/js/main.277f30d8.js",
+    "index.html": "/uniswap-analytics/index.html",
+    "main.277f30d8.js.map": "/uniswap-analytics/static/js/main.277f30d8.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.277f30d8.js"
+  ]
+}
