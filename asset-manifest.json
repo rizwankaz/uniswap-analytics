@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/uniswap-analytics/static/js/main.d1f53622.js",
+    "main.js": "/uniswap-analytics/static/js/main.fb37094a.js",
     "index.html": "/uniswap-analytics/index.html",
-    "main.d1f53622.js.map": "/uniswap-analytics/static/js/main.d1f53622.js.map"
+    "main.fb37094a.js.map": "/uniswap-analytics/static/js/main.fb37094a.js.map"
   },
   "entrypoints": [
-    "static/js/main.d1f53622.js"
+    "static/js/main.fb37094a.js"
   ]
 }
