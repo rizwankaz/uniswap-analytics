@@ -419,9 +419,6 @@ function ProtocolStats() {
 function App() {
   return (
     <Container>
-      <Typography variant="h2" align="center" gutterBottom sx={{ margin: 4 }}>
-        Uniswap V3 Mainnet
-      </Typography>
       <Stack spacing={4}>
         <Swaps />
         <TokenVolume />

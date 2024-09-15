@@ -258,7 +258,7 @@ function TokenVolume() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
+    <Card>
       <CardContent style={{ height: '400px' }}>
         <Typography variant="h6">Top 5 Tokens by Volume</Typography>
         <Bar data={chartData} options={chartOptions} aria-label="Top 5 tokens by volume chart" />
@@ -302,7 +302,7 @@ function TopPairs() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
+    <Card>
       <CardContent style={{ height: '400px' }}>
         <Typography variant="h6">Top 5 Pairs by Volume</Typography>
         <Bar data={chartData} options={chartOptions} aria-label="Top 5 pairs by volume chart" />
@@ -419,9 +419,6 @@ function ProtocolStats() {
 function App() {
   return (
     <Container>
-      <Typography variant="h2" align="center" gutterBottom sx={{ margin: 4 }}>
-        Uniswap V3 Mainnet
-      </Typography>
       <Stack spacing={4}>
         <Swaps />
         <TokenVolume />

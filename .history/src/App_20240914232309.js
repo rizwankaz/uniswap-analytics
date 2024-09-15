@@ -93,26 +93,17 @@ function Swaps() {
 
   const swaps = data?.swaps || [];
 
-  // Aggregate swaps by 10-minute intervals
+  // Aggregate swaps by hour
   const aggregatedData = swaps.reduce((acc, swap) => {
-    const timestamp = fromUnixTime(parseInt(swap.timestamp));
-
-    // Set the time to the nearest 10-minute interval
-    const minutes = Math.floor(timestamp.getMinutes() / 10) * 10;
-    const roundedTimestamp = new Date(timestamp.setMinutes(minutes, 0, 0));
-
-    const timeKey = roundedTimestamp.getTime(); // Use timestamp in milliseconds as the key
-
-    if (!acc[timeKey]) {
-      acc[timeKey] = {
+    const hour = fromUnixTime(parseInt(swap.timestamp)).setMinutes(0, 0, 0);
+    if (!acc[hour]) {
+      acc[hour] = {
         totalAmount: 0,
         count: 0,
       };
     }
-
-    acc[timeKey].totalAmount += parseFloat(swap.amountUSD);
-    acc[timeKey].count += 1;
-
+    acc[hour].totalAmount += parseFloat(swap.amountUSD);
+    acc[hour].count += 1;
     return acc;
   }, {});
 
@@ -126,7 +117,7 @@ function Swaps() {
   const lineChartData = {
     datasets: [
       {
-        label: '10-Minute Swap Volume (USD)',
+        label: 'Hourly Swap Volume (USD)',
         data: chartData,
         borderColor: 'rgba(75,192,192,1)',
         backgroundColor: 'rgba(75,192,192,0.2)',
@@ -143,10 +134,10 @@ function Swaps() {
       x: {
         type: 'time',
         time: {
-          unit: 'minute',
-          tooltipFormat: 'MMM d, HH:mm',
+          unit: 'hour',
+          tooltipFormat: 'PPP',
           displayFormats: {
-            minute: 'MMM d, HH:mm',
+            hour: 'MMM d, HH:mm',
           },
         },
         title: {
@@ -192,10 +183,10 @@ function Swaps() {
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              10-Minute Swap Volume
+              Hourly Swap Volume
             </Typography>
             <div style={{ height: '400px' }}>
-              <Line data={lineChartData} options={chartOptions} aria-label="10-minute swap volume chart" />
+              <Line data={lineChartData} options={chartOptions} aria-label="Hourly swap volume chart" />
             </div>
           </CardContent>
         </Card>
@@ -258,7 +249,7 @@ function TokenVolume() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
+    <Card>
       <CardContent style={{ height: '400px' }}>
         <Typography variant="h6">Top 5 Tokens by Volume</Typography>
         <Bar data={chartData} options={chartOptions} aria-label="Top 5 tokens by volume chart" />
@@ -302,7 +293,7 @@ function TopPairs() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
+    <Card>
       <CardContent style={{ height: '400px' }}>
         <Typography variant="h6">Top 5 Pairs by Volume</Typography>
         <Bar data={chartData} options={chartOptions} aria-label="Top 5 pairs by volume chart" />
@@ -419,9 +410,6 @@ function ProtocolStats() {
 function App() {
   return (
     <Container>
-      <Typography variant="h2" align="center" gutterBottom sx={{ margin: 4 }}>
-        Uniswap V3 Mainnet
-      </Typography>
       <Stack spacing={4}>
         <Swaps />
         <TokenVolume />

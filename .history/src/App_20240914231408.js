@@ -1,15 +1,31 @@
 import React from 'react';
 import { useQuery, gql } from '@apollo/client';
-import { Container, Typography, Card, CardContent, Stack, Skeleton, Alert } from '@mui/material';
+import { Container, Typography, Card, CardContent, Stack, CircularProgress } from '@mui/material';
 import { Line, Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, TimeScale, Tooltip, Legend, BarElement } from 'chart.js';
+import {
+  Chart as ChartJS,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  TimeScale,
+  Tooltip,
+  Legend,
+  BarElement,
+} from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { fromUnixTime } from 'date-fns';
-import PropTypes from 'prop-types';
-import { format } from 'date-fns';
 
 // Register ChartJS components
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, TimeScale, Tooltip, Legend, BarElement);
+ChartJS.register(
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  TimeScale,
+  Tooltip,
+  Legend,
+  BarElement
+);
 
 // GraphQL queries
 const SWAP_QUERY = gql`
@@ -64,90 +80,56 @@ const PROTOCOL_STATS_QUERY = gql`
   }
 `;
 
-// Error component
-const ErrorMessage = ({ message }) => (
-  <Alert severity="error" aria-live="assertive">
-    Error: {message}
-  </Alert>
-);
-
-ErrorMessage.propTypes = {
-  message: PropTypes.string.isRequired,
-};
-
-// Loading component
-const LoadingSkeleton = () => (
-  <Stack spacing={1}>
-    <Skeleton variant="rectangular" height={300} />
-    <Skeleton variant="text" />
-    <Skeleton variant="text" />
-    <Skeleton variant="text" />
-  </Stack>
-);
-
 function Swaps() {
   const { loading, error, data } = useQuery(SWAP_QUERY);
 
-  if (loading) return <LoadingSkeleton />;
-  if (error) return <ErrorMessage message={error.message} />;
+  if (loading) return <CircularProgress />;
+  if (error) {
+    console.error('Error fetching data:', error);
+    return <Typography color="error">Error: {error.message}</Typography>;
+  }
 
-  const swaps = data?.swaps || [];
+  const swaps = data.swaps;
 
-  // Aggregate swaps by 10-minute intervals
-  const aggregatedData = swaps.reduce((acc, swap) => {
-    const timestamp = fromUnixTime(parseInt(swap.timestamp));
+  // Aggregate every 100 swaps
+  const aggregateData = [];
+  for (let i = 0; i < swaps.length; i += 100) {
+    const chunk = swaps.slice(i, i + 100);
+    const totalAmountUSD = chunk.reduce((sum, swap) => sum + parseFloat(swap.amountUSD), 0);
+    const startTime = new Date(parseInt(chunk[0].timestamp) * 1000);
+    const endTime = new Date(parseInt(chunk[chunk.length - 1].timestamp) * 1000);
 
-    // Set the time to the nearest 10-minute interval
-    const minutes = Math.floor(timestamp.getMinutes() / 10) * 10;
-    const roundedTimestamp = new Date(timestamp.setMinutes(minutes, 0, 0));
+    aggregateData.push({
+      x: startTime,
+      y: totalAmountUSD,
+      label: `${startTime.toLocaleString()} - ${endTime.toLocaleString()}`
+    });
+  }
 
-    const timeKey = roundedTimestamp.getTime(); // Use timestamp in milliseconds as the key
-
-    if (!acc[timeKey]) {
-      acc[timeKey] = {
-        totalAmount: 0,
-        count: 0,
-      };
-    }
-
-    acc[timeKey].totalAmount += parseFloat(swap.amountUSD);
-    acc[timeKey].count += 1;
-
-    return acc;
-  }, {});
-
-  // Convert aggregated data to chart format
-  const chartData = Object.entries(aggregatedData).map(([timestamp, data]) => ({
-    x: new Date(parseInt(timestamp)),
-    y: data.totalAmount,
-    count: data.count,
-  })).sort((a, b) => a.x - b.x);
-
-  const lineChartData = {
+  const chartData = {
     datasets: [
       {
-        label: '10-Minute Swap Volume (USD)',
-        data: chartData,
+        label: 'Amount USD (Aggregated Every 100 Swaps)',
+        data: aggregateData,
         borderColor: 'rgba(75,192,192,1)',
         backgroundColor: 'rgba(75,192,192,0.2)',
         fill: true,
-        tension: 0.1,
       },
     ],
   };
 
   const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
     scales: {
       x: {
         type: 'time',
         time: {
           unit: 'minute',
-          tooltipFormat: 'MMM d, HH:mm',
+          tooltipFormat: 'Pp',
           displayFormats: {
-            minute: 'MMM d, HH:mm',
-          },
+            minute: 'HH:mm',
+            hour: 'HH:mm',
+            day: 'MMM D'
+          }
         },
         title: {
           display: true,
@@ -157,58 +139,38 @@ function Swaps() {
       y: {
         title: {
           display: true,
-          text: 'Volume (USD)',
+          text: 'Amount USD',
         },
-        beginAtZero: true,
-      },
-    },
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            const dataPoint = context.raw;
-            return [
-              `Volume: $${dataPoint.y.toFixed(2)}`,
-              `Swaps: ${dataPoint.count}`,
-            ];
-          },
-        },
+        beginAtZero: true
       },
     },
   };
 
-  // Get the 5 most recent swaps for display
   const latestSwaps = swaps.slice(0, 5).map(swap => ({
     ...swap,
-    timestamp: format(fromUnixTime(parseInt(swap.timestamp)), 'PPpp'),
+    timestamp: new Date(parseInt(swap.timestamp) * 1000).toLocaleString()
   }));
 
   return (
     <Container>
       <Typography variant="h4" gutterBottom>
-        Swap Activity
+        Recent Swaps
       </Typography>
       <Stack spacing={3}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              10-Minute Swap Volume
-            </Typography>
-            <div style={{ height: '400px' }}>
-              <Line data={lineChartData} options={chartOptions} aria-label="10-minute swap volume chart" />
-            </div>
+            <Typography variant="h6">Swap Amounts Aggregated Every 100 Swaps</Typography>
+            <Line data={chartData} options={chartOptions} />
           </CardContent>
         </Card>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Most Recent Swaps
-            </Typography>
+            <Typography variant="h6">Recent Swap Details</Typography>
             {latestSwaps.map((swap) => (
               <Card key={swap.id} sx={{ marginBottom: 2 }}>
                 <CardContent>
                   <Typography variant="body1">
-                    {swap.token0.symbol}/{swap.token1.symbol}: ${parseFloat(swap.amountUSD).toFixed(2)}
+                    {swap.token0.symbol}/{swap.token1.symbol}: {swap.amountUSD} USD
                   </Typography>
                   <Typography variant="body2">
                     Timestamp: {swap.timestamp}
@@ -226,8 +188,11 @@ function Swaps() {
 function TokenVolume() {
   const { loading, error, data } = useQuery(TOKEN_VOLUME_QUERY);
 
-  if (loading) return <LoadingSkeleton />;
-  if (error) return <ErrorMessage message={error.message} />;
+  if (loading) return <CircularProgress />;
+  if (error) {
+    console.error('Error fetching data:', error);
+    return <Typography color="error">Error: {error.message}</Typography>;
+  }
 
   const tokens = data.tokens;
   const chartData = {
@@ -244,8 +209,6 @@ function TokenVolume() {
   };
 
   const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
@@ -258,10 +221,10 @@ function TokenVolume() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
-      <CardContent style={{ height: '400px' }}>
+    <Card>
+      <CardContent>
         <Typography variant="h6">Top 5 Tokens by Volume</Typography>
-        <Bar data={chartData} options={chartOptions} aria-label="Top 5 tokens by volume chart" />
+        <Bar data={chartData} options={chartOptions} />
       </CardContent>
     </Card>
   );
@@ -270,8 +233,11 @@ function TokenVolume() {
 function TopPairs() {
   const { loading, error, data } = useQuery(TOP_PAIRS_QUERY);
 
-  if (loading) return <LoadingSkeleton />;
-  if (error) return <ErrorMessage message={error.message} />;
+  if (loading) return <CircularProgress />;
+  if (error) {
+    console.error('Error fetching data:', error);
+    return <Typography color="error">Error: {error.message}</Typography>;
+  }
 
   const pairs = data.pools;
   const chartData = {
@@ -288,8 +254,6 @@ function TopPairs() {
   };
 
   const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
@@ -302,10 +266,10 @@ function TopPairs() {
   };
 
   return (
-    <Card sx={{ padding: 2}}>
-      <CardContent style={{ height: '400px' }}>
+    <Card>
+      <CardContent>
         <Typography variant="h6">Top 5 Pairs by Volume</Typography>
-        <Bar data={chartData} options={chartOptions} aria-label="Top 5 pairs by volume chart" />
+        <Bar data={chartData} options={chartOptions} />
       </CardContent>
     </Card>
   );
@@ -419,9 +383,6 @@ function ProtocolStats() {
 function App() {
   return (
     <Container>
-      <Typography variant="h2" align="center" gutterBottom sx={{ margin: 4 }}>
-        Uniswap V3 Mainnet
-      </Typography>
       <Stack spacing={4}>
         <Swaps />
         <TokenVolume />
